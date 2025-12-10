@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { subscriptions } from '../api/endpoints';
 import type { Subscription, SubscriptionSummary, SubscriptionCreate } from '../api/types';
+import { buildSpendingForecast, buildCategoryBreakdown } from '../utils/chartData';
 import Layout from '../components/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SubscriptionForm from '../components/SubscriptionForm';
+import SpendingForecastChart from '../components/SpendingForecastChart';
+import CategoryBreakdownChart from '../components/CategoryBreakdownChart';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -105,6 +108,17 @@ export default function Dashboard() {
     });
   };
 
+  // Compute chart data using useMemo
+  const forecastData = useMemo(
+    () => buildSpendingForecast(subscriptionList),
+    [subscriptionList]
+  );
+
+  const categoryData = useMemo(
+    () => buildCategoryBreakdown(subscriptionList),
+    [subscriptionList]
+  );
+
   console.log('[Dashboard] Rendering with state:', { isLoading, error, hasUser: !!user });
 
   return (
@@ -186,6 +200,24 @@ export default function Dashboard() {
                 </Card>
               </div>
             )}
+
+            {/* Charts Section */}
+            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <SpendingForecastChart
+                  data={forecastData}
+                  isLoading={isLoading}
+                  error={error}
+                />
+              </div>
+              <div className="lg:col-span-1">
+                <CategoryBreakdownChart
+                  data={categoryData}
+                  isLoading={isLoading}
+                  error={error}
+                />
+              </div>
+            </div>
 
             <Card className="overflow-hidden p-0">
               <div className="px-4 py-3 border-b border-gray-200">
