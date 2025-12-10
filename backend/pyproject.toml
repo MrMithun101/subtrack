@@ -1,0 +1,22 @@
+[project]
+name = "subtrack-backend"
+version = "0.1.0"
+description = "SubTrack Backend API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "SQLAlchemy",
+    "psycopg2-binary",
+    "python-dotenv",
+    "pydantic",
+    "passlib[bcrypt]",
+    "python-jose[cryptography]",
+    "alembic",
+    "email-validator",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
