@@ -15,6 +15,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
+    default_reminder_days_before = Column(Integer, default=3, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
         DateTime,

@@ -15,7 +15,9 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [subscriptionList, setSubscriptionList] = useState<Subscription[]>([]);
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
+  const [upcomingRenewals, setUpcomingRenewals] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -44,9 +46,30 @@ export default function Dashboard() {
     }
   };
 
+  const loadUpcomingRenewals = async () => {
+    setIsLoadingUpcoming(true);
+    try {
+      const upcoming = await subscriptions.getUpcoming(7);
+      setUpcomingRenewals(upcoming);
+    } catch (err: any) {
+      console.error('[Dashboard] Failed to load upcoming renewals:', err);
+      // Don't set error state - just log it, don't break the dashboard
+    } finally {
+      setIsLoadingUpcoming(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadUpcomingRenewals();
   }, []);
+
+  // Reload upcoming renewals when subscriptions change
+  useEffect(() => {
+    if (!isLoading) {
+      loadUpcomingRenewals();
+    }
+  }, [subscriptionList, isLoading]);
 
   const handleAddSubscription = async (data: SubscriptionCreate) => {
     try {
@@ -54,6 +77,7 @@ export default function Dashboard() {
       setShowAddForm(false);
       // Reload data to show the new subscription
       await loadData();
+      await loadUpcomingRenewals();
     } catch (err: any) {
       console.error('Failed to create subscription:', err);
       throw err; // Let the form handle the error
@@ -70,6 +94,7 @@ export default function Dashboard() {
       await subscriptions.delete(id);
       // Reload data to reflect the deletion
       await loadData();
+      await loadUpcomingRenewals();
     } catch (err: any) {
       console.error('Failed to delete subscription:', err);
       alert(err.response?.data?.detail || 'Failed to delete subscription');
@@ -106,6 +131,17 @@ export default function Dashboard() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const getDaysUntil = (dateString: string | null): number | null => {
+    if (!dateString) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(dateString);
+    targetDate.setHours(0, 0, 0, 0);
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   // Compute chart data using useMemo
@@ -176,6 +212,14 @@ export default function Dashboard() {
 
         {!isLoading && !error && (
           <>
+            {/* Alert Banner for Upcoming Renewals */}
+            {upcomingRenewals.length > 0 && (
+              <div className="mb-4 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+                <strong>Reminder:</strong> You have {upcomingRenewals.length} subscription{upcomingRenewals.length > 1 ? 's' : ''} renewing soon.
+                {' '}Check the "Upcoming renewals" section below.
+              </div>
+            )}
+
             {summary && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Card>
@@ -200,6 +244,68 @@ export default function Dashboard() {
                 </Card>
               </div>
             )}
+
+            {/* Upcoming Renewals Card */}
+            <Card>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Upcoming Renewals</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Subscriptions renewing in the next 7 days.
+                </p>
+              </div>
+              <div className="px-6 py-4">
+                {isLoadingUpcoming ? (
+                  <div className="flex items-center justify-center py-4">
+                    <LoadingSpinner />
+                    <span className="ml-2 text-sm text-gray-600">Loading upcoming renewals...</span>
+                  </div>
+                ) : upcomingRenewals.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-gray-500">
+                    No renewals in the next 7 days. You're all clear ✨
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingRenewals.map((sub) => {
+                      const daysLeft = getDaysUntil(sub.next_billing_date);
+                      return (
+                        <div
+                          key={sub.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-sm font-semibold text-gray-900">{sub.name}</h3>
+                              {daysLeft !== null && daysLeft >= 0 && (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                                    daysLeft <= 1
+                                      ? 'bg-red-100 text-red-800'
+                                      : daysLeft <= 3
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}
+                                >
+                                  {daysLeft === 0
+                                    ? 'Today'
+                                    : daysLeft === 1
+                                    ? '1 day left'
+                                    : `${daysLeft} days left`}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-center gap-4 text-xs text-gray-600">
+                              <span>{formatCurrency(sub.price, sub.currency)}</span>
+                              <span className="capitalize">{sub.billing_cycle}</span>
+                              <span>{formatDate(sub.next_billing_date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </Card>
 
             {/* Charts Section */}
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

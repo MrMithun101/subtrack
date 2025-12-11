@@ -16,6 +16,9 @@ class Subscription(Base):
     next_billing_date = Column(Date, nullable=True)
     category = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    reminder_enabled = Column(Boolean, default=True, nullable=False)
+    reminder_days_before = Column(Integer, default=3, nullable=False)
+    last_reminder_sent_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

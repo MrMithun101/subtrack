@@ -87,4 +87,14 @@ export const subscriptions = {
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/subscriptions/${id}`);
   },
+
+  /**
+   * Get upcoming renewals for the current user
+   */
+  getUpcoming: async (withinDays: number = 7): Promise<Subscription[]> => {
+    const response = await apiClient.get<Subscription[]>(
+      `/subscriptions/upcoming?within_days=${withinDays}`
+    );
+    return response.data;
+  },
 };

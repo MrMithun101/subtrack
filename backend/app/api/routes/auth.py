@@ -44,6 +44,7 @@ def register_user(
         hashed_password=hashed,
         is_active=user_in.is_active,
         is_superuser=user_in.is_superuser,
+        default_reminder_days_before=user_in.default_reminder_days_before,
     )
 
     db.add(user)

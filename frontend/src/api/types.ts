@@ -6,6 +6,7 @@ export interface User {
   full_name: string | null;
   is_active: boolean;
   is_superuser: boolean;
+  default_reminder_days_before: number;
   created_at: string; // ISO datetime string
   updated_at: string; // ISO datetime string
 }
@@ -38,6 +39,9 @@ export interface Subscription {
   next_billing_date: string | null; // ISO date string
   category: string | null;
   is_active: boolean;
+  reminder_enabled: boolean;
+  reminder_days_before: number;
+  last_reminder_sent_at: string | null; // ISO datetime string
   created_at: string; // ISO datetime string
   updated_at: string; // ISO datetime string
 }
@@ -50,6 +54,8 @@ export interface SubscriptionCreate {
   next_billing_date?: string | null;
   category?: string | null;
   is_active?: boolean;
+  reminder_enabled?: boolean;
+  reminder_days_before?: number | null;
 }
 
 export interface SubscriptionUpdate {
@@ -60,6 +66,8 @@ export interface SubscriptionUpdate {
   next_billing_date?: string | null;
   category?: string | null;
   is_active?: boolean;
+  reminder_enabled?: boolean;
+  reminder_days_before?: number | null;
 }
 
 export interface SubscriptionSummary {

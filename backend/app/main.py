@@ -53,8 +53,33 @@ app.openapi = custom_openapi
 
 # Run DB migrations automatically (for SQLite)
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     Base.metadata.create_all(bind=engine)
+    
+    # Start the reminder worker
+    # NOTE: This is a simple in-process scheduler for development.
+    # In production, consider using a dedicated worker process, Celery,
+    # or a cron job to run reminder tasks separately from the API server.
+    import asyncio
+    from app.services.reminders import process_renewal_reminders
+    
+    async def reminder_worker():
+        """Background worker that runs renewal reminder checks once per day."""
+        while True:
+            try:
+                # Run once per 24 hours
+                process_renewal_reminders(within_days=7)
+            except Exception as e:
+                # Log error but don't crash the worker
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error in reminder worker: {str(e)}", exc_info=True)
+            
+            # Wait 24 hours before next run
+            await asyncio.sleep(60 * 60 * 24)  # 24 hours in seconds
+    
+    # Start the worker as a background task
+    asyncio.create_task(reminder_worker())
 
 
 # Include routers

@@ -12,10 +12,21 @@ class SubscriptionBase(BaseModel):
     next_billing_date: Optional[date] = None
     category: Optional[str] = None
     is_active: bool = True
+    reminder_enabled: bool = True
+    reminder_days_before: int = 3
 
 
-class SubscriptionCreate(SubscriptionBase):
-    pass
+class SubscriptionCreate(BaseModel):
+    """Create schema - reminder_days_before is optional to allow using user's default."""
+    name: str
+    price: float
+    currency: str = "USD"
+    billing_cycle: str = "monthly"
+    next_billing_date: Optional[date] = None
+    category: Optional[str] = None
+    is_active: bool = True
+    reminder_enabled: bool = True
+    reminder_days_before: Optional[int] = None  # None means use user's default
 
 
 class SubscriptionUpdate(BaseModel):
@@ -26,6 +37,8 @@ class SubscriptionUpdate(BaseModel):
     next_billing_date: Optional[date] = None
     category: Optional[str] = None
     is_active: Optional[bool] = None
+    reminder_enabled: Optional[bool] = None
+    reminder_days_before: Optional[int] = None
 
 
 class SubscriptionRead(SubscriptionBase):
@@ -33,6 +46,7 @@ class SubscriptionRead(SubscriptionBase):
     user_id: int
     created_at: datetime
     updated_at: datetime
+    last_reminder_sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

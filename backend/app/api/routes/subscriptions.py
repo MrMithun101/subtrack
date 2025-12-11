@@ -12,6 +12,7 @@ from app.services.subscriptions import (
     delete_subscription,
     get_subscription,
     get_subscriptions_for_user,
+    get_upcoming_renewals,
     update_subscription,
 )
 
@@ -25,6 +26,26 @@ def list_subscriptions(
 ):
     """Get all subscriptions for the current user."""
     subscriptions = get_subscriptions_for_user(db, current_user.id)
+    return subscriptions
+
+
+@router.get("/upcoming", response_model=List[SubscriptionRead])
+def get_upcoming_subscriptions(
+    within_days: int = 7,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return upcoming renewals for the current user within the next `within_days` days.
+    Only includes active subscriptions with `reminder_enabled = True`.
+    """
+    # Cap within_days to a reasonable maximum (60 days)
+    if within_days > 60:
+        within_days = 60
+    if within_days < 1:
+        within_days = 1
+    
+    subscriptions = get_upcoming_renewals(db, current_user.id, within_days=within_days)
     return subscriptions
 
 
@@ -81,6 +102,10 @@ def create_subscription_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     """Create a new subscription for the current user."""
+    # If reminder_days_before is not provided (None), use the user's default
+    if subscription_in.reminder_days_before is None:
+        subscription_in.reminder_days_before = current_user.default_reminder_days_before
+    
     subscription = create_subscription(db, current_user.id, subscription_in)
     return subscription
 

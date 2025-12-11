@@ -26,6 +26,8 @@ export default function SubscriptionForm({
     next_billing_date: initialData?.next_billing_date || null,
     category: initialData?.category || null,
     is_active: initialData?.is_active ?? true,
+    reminder_enabled: initialData?.reminder_enabled ?? true,
+    reminder_days_before: initialData?.reminder_days_before ?? null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +140,39 @@ export default function SubscriptionForm({
             <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
               Active subscription
             </label>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Reminder Settings</h3>
+            
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="reminder_enabled"
+                checked={formData.reminder_enabled ?? true}
+                onChange={(e) => setFormData({ ...formData, reminder_enabled: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+              />
+              <label htmlFor="reminder_enabled" className="ml-2 text-sm text-gray-700">
+                Enable renewal reminders
+              </label>
+            </div>
+
+            {formData.reminder_enabled && (
+              <Input
+                label="Remind me (days before renewal)"
+                name="reminder_days_before"
+                type="number"
+                min="1"
+                max="30"
+                value={formData.reminder_days_before || ''}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  reminder_days_before: e.target.value ? parseInt(e.target.value) : null 
+                })}
+                placeholder="3"
+              />
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
