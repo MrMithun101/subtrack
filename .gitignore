@@ -1,9 +1,55 @@
+# Python
 venv/
+env/
+ENV/
 __pycache__/
-.env
-node_modules/
-*.pyc
-.DS_Store
+*.py[cod]
+*$py.class
+*.so
+.Python
 *.db
 *.sqlite
 *.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend specific (handled by frontend/.gitignore, but adding here for safety)
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Backend specific
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/.env

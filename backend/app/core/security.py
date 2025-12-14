@@ -6,7 +6,17 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi.security import HTTPBearer
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+# JWT Secret Key - MUST be set in production via SECRET_KEY environment variable
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    import warnings
+    warnings.warn(
+        "SECRET_KEY not set! Using dev secret. This is UNSAFE for production. "
+        "Set SECRET_KEY environment variable in production.",
+        UserWarning
+    )
+    SECRET_KEY = "dev-secret-change-me-in-production"
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

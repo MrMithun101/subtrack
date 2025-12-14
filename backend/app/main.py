@@ -5,6 +5,7 @@ from fastapi.openapi.utils import get_openapi
 # Routers
 from app.api.routes.auth import router as auth_router
 from app.api.routes.subscriptions import router as subscriptions_router
+from app.api.routes.internal import router as internal_router
 
 # DB
 from app.db.session import Base, engine
@@ -14,14 +15,30 @@ from app.models import Subscription, User  # Import models so they're registered
 app = FastAPI(title="SubTrack API")
 
 # Configure CORS
+# Always allow localhost for local development
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Add production origins from CORS_ORIGINS env var (comma-separated)
+import os
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    # Split by comma and strip whitespace
+    production_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+    allowed_origins.extend(production_origins)
+
+# Legacy support: also check FRONTEND_URL (single URL)
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,40 +68,22 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 
-# Run DB migrations automatically (for SQLite)
 @app.on_event("startup")
 async def on_startup():
-    Base.metadata.create_all(bind=engine)
+    """
+    Startup event handler.
+    Note: Database tables are created via Alembic migrations, not here.
     
-    # Start the reminder worker
-    # NOTE: This is a simple in-process scheduler for development.
-    # In production, consider using a dedicated worker process, Celery,
-    # or a cron job to run reminder tasks separately from the API server.
-    import asyncio
-    from app.services.reminders import process_renewal_reminders
-    
-    async def reminder_worker():
-        """Background worker that runs renewal reminder checks once per day."""
-        while True:
-            try:
-                # Run once per 24 hours
-                process_renewal_reminders(within_days=7)
-            except Exception as e:
-                # Log error but don't crash the worker
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error in reminder worker: {str(e)}", exc_info=True)
-            
-            # Wait 24 hours before next run
-            await asyncio.sleep(60 * 60 * 24)  # 24 hours in seconds
-    
-    # Start the worker as a background task
-    asyncio.create_task(reminder_worker())
+    Note: Reminder processing is handled via Railway cron job calling
+    POST /internal/run-reminders endpoint, not via background worker.
+    """
+    pass
 
 
 # Include routers
 app.include_router(auth_router)
 app.include_router(subscriptions_router)
+app.include_router(internal_router)
 
 
 # Basic test routes
@@ -95,4 +94,23 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    """
+    Health check endpoint that verifies database connectivity.
+    Returns 200 if DB is accessible, 503 if not.
+    """
+    from sqlalchemy import text
+    from app.db.session import engine
+    
+    try:
+        # Simple DB connectivity check
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        # Return 503 Service Unavailable if DB is not accessible
+        from fastapi import status
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "error", "database": "disconnected", "error": str(e)}
+        )
